@@ -1,12 +1,15 @@
 """
-☁️ WordCloud Studio — Nube de Palabras Profesional
-Aplicación Streamlit con diseño corporativo limpio
+🧭 Postales de Viaje — Tu viaje contado en palabras
+Aplicación Streamlit con estética de cuaderno de viaje
 
 Instalación:
     pip install streamlit wordcloud matplotlib pandas Pillow numpy
 
 Ejecución:
     streamlit run wordcloud_app.py
+
+Imagen de portada (opcional):
+    Coloca un archivo llamado  portada.jpg  en la misma carpeta que este script.
 """
 
 import streamlit as st
@@ -15,6 +18,8 @@ import pandas as pd
 import numpy as np
 import re
 import io
+import os
+import base64
 from collections import Counter
 from wordcloud import WordCloud, STOPWORDS
 
@@ -22,14 +27,38 @@ from wordcloud import WordCloud, STOPWORDS
 # CONFIGURACIÓN
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="WordCloud Studio",
-    page_icon="☁️",
+    page_title="Postales de Viaje",
+    page_icon="🧭",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ─────────────────────────────────────────────
-# ESTILOS — diseño profesional / corporativo
+# IMAGEN DE PORTADA (portada.jpg)
+# ─────────────────────────────────────────────
+RUTA_PORTADA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "portada.jpg")
+
+
+def cargar_portada_base64():
+    """Devuelve la imagen portada.jpg en base64, o None si no existe."""
+    if os.path.exists(RUTA_PORTADA):
+        with open(RUTA_PORTADA, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+    return None
+
+
+PORTADA_B64 = cargar_portada_base64()
+
+if PORTADA_B64:
+    HEADER_BG = (
+        "linear-gradient(105deg, rgba(11,60,73,0.88) 0%, rgba(11,60,73,0.55) 55%, rgba(231,111,81,0.35) 100%), "
+        f"url('data:image/jpeg;base64,{PORTADA_B64}')"
+    )
+else:
+    HEADER_BG = "linear-gradient(115deg, #0b3c49 0%, #0f766e 55%, #e76f51 130%)"
+
+# ─────────────────────────────────────────────
+# ESTILOS — cuaderno de viaje / postal vintage
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -39,153 +68,184 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
     }
 
-    /* Fondo general gris muy claro */
+    /* Fondo general: papel crema */
     .stApp {
-        background-color: #f4f5f7;
+        background-color: #fbf6ec;
+        background-image: radial-gradient(#efe4cc 1px, transparent 1px);
+        background-size: 22px 22px;
     }
 
-    /* Sidebar blanco con borde sutil */
+    /* Sidebar: arena cálida */
     [data-testid="stSidebar"] {
-        background-color: #ffffff !important;
-        border-right: 1px solid #dde1e7;
+        background-color: #f3e9d2 !important;
+        border-right: 2px dashed #d9c9a3;
     }
     [data-testid="stSidebar"] h2,
     [data-testid="stSidebar"] h3 {
-        color: #161a1d !important;
+        color: #0b3c49 !important;
         font-weight: 700 !important;
-        font-size: 0.95rem !important;
+        font-size: 0.9rem !important;
         text-transform: uppercase !important;
-        letter-spacing: 0.8px !important;
+        letter-spacing: 1.2px !important;
     }
     [data-testid="stSidebar"] label {
-        color: #4a5568 !important;
+        color: #3d5a62 !important;
         font-size: 0.85rem !important;
         font-weight: 500 !important;
     }
     [data-testid="stSidebar"] p {
-        color: #6b7280 !important;
+        color: #5c6f73 !important;
         font-size: 0.88rem !important;
     }
     [data-testid="stSidebar"] hr {
-        border-color: #e5e7eb !important;
+        border-color: #d9c9a3 !important;
         margin: 16px 0 !important;
     }
 
     /* Inputs */
     textarea, input[type="text"] {
-        background-color: #ffffff !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 6px !important;
-        color: #111827 !important;
+        background-color: #fffdf7 !important;
+        border: 1.5px solid #d9c9a3 !important;
+        border-radius: 10px !important;
+        color: #1c2b2e !important;
         font-family: 'Inter', sans-serif !important;
         font-size: 0.9rem !important;
     }
     textarea:focus, input[type="text"]:focus {
-        border-color: #374151 !important;
-        box-shadow: 0 0 0 2px rgba(55,65,81,0.12) !important;
+        border-color: #0f766e !important;
+        box-shadow: 0 0 0 3px rgba(15,118,110,0.18) !important;
     }
 
     /* Selectbox */
     [data-baseweb="select"] > div {
-        background: #ffffff !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 6px !important;
-        color: #111827 !important;
+        background: #fffdf7 !important;
+        border: 1.5px solid #d9c9a3 !important;
+        border-radius: 10px !important;
+        color: #1c2b2e !important;
         font-size: 0.9rem !important;
     }
 
     /* Títulos */
     h1 {
         font-family: 'Inter', sans-serif !important;
-        color: #111827 !important;
+        color: #0b3c49 !important;
         font-weight: 700 !important;
         letter-spacing: -0.5px !important;
     }
     h2, h3 {
         font-family: 'Inter', sans-serif !important;
-        color: #1f2937 !important;
+        color: #0f4c5c !important;
         font-weight: 600 !important;
     }
     p, li {
-        color: #374151 !important;
+        color: #3b4a4d !important;
         font-size: 0.95rem !important;
         line-height: 1.65 !important;
     }
 
-    /* Botón principal — antracita sólido */
+    /* Botón principal — coral */
     .stButton > button {
-        background: #1f2937 !important;
+        background: #e76f51 !important;
         color: #ffffff !important;
         border: none !important;
-        border-radius: 6px !important;
+        border-radius: 999px !important;
         font-family: 'Inter', sans-serif !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         font-size: 0.9rem !important;
-        letter-spacing: 0.3px !important;
-        padding: 0.6rem 1.4rem !important;
+        letter-spacing: 0.6px !important;
+        padding: 0.65rem 1.4rem !important;
         width: 100% !important;
-        transition: background 0.2s ease, box-shadow 0.2s ease !important;
+        box-shadow: 0 3px 0 #b9503a !important;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease !important;
     }
     .stButton > button:hover {
-        background: #111827 !important;
-        box-shadow: 0 2px 12px rgba(17,24,39,0.25) !important;
+        background: #d95f41 !important;
+        transform: translateY(1px);
+        box-shadow: 0 2px 0 #b9503a !important;
     }
 
-    /* Botón descarga — gris slate */
+    /* Botón descarga — verde azulado */
     [data-testid="stDownloadButton"] button {
-        background: #374151 !important;
+        background: #0f766e !important;
         color: #ffffff !important;
         border: none !important;
-        border-radius: 6px !important;
+        border-radius: 999px !important;
         font-weight: 600 !important;
         font-size: 0.88rem !important;
-        transition: background 0.2s !important;
+        box-shadow: 0 3px 0 #0a524c !important;
+        transition: background 0.2s, transform 0.15s !important;
     }
     [data-testid="stDownloadButton"] button:hover {
-        background: #1f2937 !important;
+        background: #0b5f58 !important;
+        transform: translateY(1px);
     }
 
-    /* Métricas */
+    /* Métricas — estilo "sello" */
     [data-testid="metric-container"] {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-top: 3px solid #374151;
-        border-radius: 8px;
+        background: #fffdf7;
+        border: 1.5px dashed #d9c9a3;
+        border-bottom: 4px solid #e76f51;
+        border-radius: 14px;
         padding: 18px 22px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 10px rgba(11,60,73,0.06);
     }
     [data-testid="metric-container"] label {
-        color: #6b7280 !important;
-        font-size: 0.78rem !important;
+        color: #7a8a8c !important;
+        font-size: 0.76rem !important;
         font-weight: 600 !important;
         text-transform: uppercase !important;
-        letter-spacing: 0.6px !important;
+        letter-spacing: 1px !important;
     }
     [data-testid="metric-container"] [data-testid="stMetricValue"] {
-        color: #111827 !important;
+        color: #0b3c49 !important;
         font-weight: 700 !important;
         font-size: 1.55rem !important;
     }
 
-    /* Header */
+    /* Header con portada */
     .header-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-left: 5px solid #1f2937;
-        border-radius: 8px;
-        padding: 28px 36px;
-        margin-bottom: 24px;
-        box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+        position: relative;
+        border-radius: 18px;
+        padding: 56px 44px;
+        margin-bottom: 26px;
+        box-shadow: 0 10px 28px rgba(11,60,73,0.22);
+        overflow: hidden;
+        background-size: cover;
+        background-position: center;
+    }
+    .header-card h1 {
+        color: #ffffff !important;
+        margin: 0;
+        font-size: 2.2rem;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.35);
+    }
+    .header-card p {
+        color: #fde9d9 !important;
+        margin: 8px 0 0 0;
+        font-size: 1.02rem !important;
+    }
+    .header-sello {
+        display: inline-block;
+        border: 2px solid #ffd9c7;
+        color: #ffd9c7;
+        border-radius: 6px;
+        padding: 2px 12px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+        transform: rotate(-2deg);
     }
 
-    /* Sección card */
+    /* Sección card — tarjeta postal */
     .section-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
+        background: #fffdf7;
+        border: 1.5px solid #eadfc4;
+        border-radius: 16px;
         padding: 24px 28px;
         margin-bottom: 16px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        box-shadow: 0 4px 12px rgba(11,60,73,0.05);
     }
 
     /* Barras de frecuencia */
@@ -195,30 +255,29 @@ st.markdown("""
         gap: 14px;
         padding: 7px 14px;
         margin: 4px 0;
-        background: #f9fafb;
-        border: 1px solid #f3f4f6;
-        border-radius: 6px;
-        transition: background 0.15s;
+        background: #fffdf7;
+        border: 1px solid #eadfc4;
+        border-radius: 10px;
+        transition: background 0.15s, transform 0.15s;
     }
-    .freq-row:hover { background: #f3f4f6; }
+    .freq-row:hover { background: #fdf1de; transform: translateX(3px); }
 
     .freq-bar {
-        height: 8px;
-        background: #374151;
-        border-radius: 4px;
+        height: 9px;
+        background: linear-gradient(90deg, #0f766e, #e76f51);
+        border-radius: 6px;
         display: inline-block;
         vertical-align: middle;
     }
 
     /* Tag de ranking */
     .rank-tag {
-        background: #f3f4f6;
-        border: 1px solid #e5e7eb;
-        border-radius: 4px;
+        background: #0b3c49;
+        border-radius: 6px;
         padding: 1px 8px;
         font-size: 0.75rem;
         font-weight: 700;
-        color: #6b7280;
+        color: #fde9d9;
         font-family: 'IBM Plex Mono', monospace;
         min-width: 36px;
         text-align: center;
@@ -230,41 +289,42 @@ st.markdown("""
         align-items: flex-start;
         gap: 12px;
         padding: 12px 16px;
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
+        background: #fdf6e6;
+        border: 1px solid #eadfc4;
+        border-left: 4px solid #e76f51;
+        border-radius: 10px;
         margin-bottom: 8px;
     }
 
-    /* Uso cards */
+    /* Uso tags */
     .uso-tag {
         display: inline-block;
-        background: #f3f4f6;
-        border: 1px solid #e5e7eb;
+        background: #e3f1ef;
+        border: 1px solid #b9dcd7;
         border-radius: 20px;
         padding: 5px 14px;
         font-size: 0.85rem;
         font-weight: 500;
-        color: #374151;
+        color: #0b4f49;
         margin: 4px 3px;
     }
 
     /* Expander */
     div[data-testid="stExpander"] {
-        border: 1px solid #e5e7eb !important;
-        border-radius: 8px !important;
-        background: #ffffff !important;
+        border: 1.5px solid #eadfc4 !important;
+        border-radius: 12px !important;
+        background: #fffdf7 !important;
     }
 
-    hr { border-color: #e5e7eb !important; }
+    hr { border-color: #eadfc4 !important; }
 
-    /* Nube container */
+    /* Nube container — marco de postal */
     .wc-container {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
+        background: #fffdf7;
+        border: 1.5px solid #eadfc4;
+        border-radius: 16px;
         padding: 20px;
-        box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+        box-shadow: 0 6px 16px rgba(11,60,73,0.08);
         margin-bottom: 16px;
     }
 </style>
@@ -293,9 +353,10 @@ def obtener_stopwords(idioma):
 
 
 # ─────────────────────────────────────────────
-# PALETAS PROFESIONALES
+# PALETAS
 # ─────────────────────────────────────────────
 PALETAS = {
+    "Atardecer costero":    ["#0b3c49","#0f766e","#e76f51","#f4a261","#e9c46a","#2a9d8f","#264653"],
     "Escala de grises":     ["#111827","#1f2937","#374151","#4b5563","#6b7280","#9ca3af","#d1d5db"],
     "Azul corporativo":     ["#1e3a5f","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#0f2942"],
     "Verde institucional":  ["#064e3b","#065f46","#047857","#059669","#10b981","#34d399","#6ee7b7"],
@@ -373,7 +434,7 @@ def fig_a_bytes(fig):
 # SIDEBAR
 # ─────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## ☁️ WordCloud Studio")
+    st.markdown("## 🧭 Postales de Viaje")
     st.divider()
 
     # ── Fuente ──
@@ -385,7 +446,7 @@ with st.sidebar:
     if fuente == "✍️ Escribir / Pegar":
         texto_input = st.text_area(
             "Texto:", height=190,
-            placeholder="Pega aquí un artículo, reseña, discurso, encuesta...")
+            placeholder="Pega aquí tu diario de viaje, reseñas de hoteles, cartas o comentarios de otros viajeros...")
 
         with st.expander("Cargar texto de ejemplo"):
             ejemplos = {
@@ -469,13 +530,12 @@ with st.sidebar:
 # CONTENIDO PRINCIPAL
 # ─────────────────────────────────────────────
 
-# Header
-st.markdown("""
-<div class="header-card">
-    <h1 style="margin:0; font-size:1.9rem;">☁️ WordCloud Studio</h1>
-    <p style="margin:6px 0 0 0; color:#6b7280 !important; font-size:0.97rem;">
-        Análisis de frecuencia léxica y visualización de nubes de palabras
-    </p>
+# Header con imagen portada.jpg
+st.markdown(f"""
+<div class="header-card" style="background-image: {HEADER_BG};">
+    <span class="header-sello">✈ Correo aéreo</span>
+    <h1>🧭 Postales de Viaje</h1>
+    <p>Tu viaje contado en palabras: descubre qué fue lo que más te marcó del camino</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -487,32 +547,33 @@ if not generar or not texto_input.strip():
         st.markdown('<div class="section-card">', unsafe_allow_html=True)
         st.markdown("### Acerca de esta herramienta")
         st.markdown("""
-        Una **nube de palabras** representa visualmente la frecuencia de términos en un texto:
-        las palabras más frecuentes aparecen con mayor tamaño, permitiendo identificar
-        los temas centrales de un corpus de manera intuitiva.
+        **Postales de Viaje** convierte tus diarios, reseñas y mensajes de viaje en una
+        **nube de palabras**: los términos que más repetiste (un sabor, un lugar, una emoción)
+        aparecen en mayor tamaño, revelando de un vistazo qué fue lo que realmente
+        definió tu experiencia.
         """)
 
         for icono, titulo, desc in [
-            ("📊", "Análisis de frecuencia", "Identifica los términos dominantes de cualquier corpus textual."),
-            ("🔍", "Filtrado inteligente", "Elimina palabras vacías (*stopwords*) en español e inglés."),
-            ("🎨", "Personalización visual", "Selecciona paleta, forma y densidad de la nube."),
-            ("⬇️", "Exportación", "Descarga la imagen en alta resolución y la tabla de frecuencias en CSV."),
+            ("🧭", "Brújula de recuerdos", "Descubre qué palabras dominan la historia de tu viaje."),
+            ("🧳", "Equipaje liviano", "Deja fuera las palabras vacías (*stopwords*) en español e inglés y quédate con lo esencial."),
+            ("🖼️", "Postal a tu estilo", "Elige paleta, forma y cantidad de palabras para tu recuerdo visual."),
+            ("✉️", "Envía tu postal", "Descarga la imagen en alta resolución y la tabla de frecuencias en CSV."),
         ]:
             st.markdown(
                 f'<div class="info-item">'
                 f'<span style="font-size:1.3rem; flex-shrink:0;">{icono}</span>'
-                f'<div><strong style="color:#111827;">{titulo}</strong>'
-                f'<p style="margin:2px 0 0 0; color:#6b7280 !important; font-size:0.88rem;">{desc}</p></div>'
+                f'<div><strong style="color:#0b3c49;">{titulo}</strong>'
+                f'<p style="margin:2px 0 0 0; color:#6b7a7c !important; font-size:0.88rem;">{desc}</p></div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
 
-        st.markdown("#### Instrucciones")
+        st.markdown("#### Cómo armar tu postal")
         for i, paso in enumerate([
-            "Ingresa o sube un texto en el panel lateral.",
-            "Configura el idioma de *stopwords*, paleta y número de palabras.",
+            "Pega o sube tu diario de viaje, reseñas o cartas en el panel lateral.",
+            "Configura el idioma de *stopwords*, la paleta y el número de palabras.",
             "Haz clic en **GENERAR NUBE ↗**.",
-            "Descarga la imagen PNG o la tabla CSV.",
+            "Descarga tu postal en PNG o la tabla de frecuencias en CSV.",
         ], 1):
             st.markdown(f"**{i}.** {paso}")
 
@@ -520,15 +581,15 @@ if not generar or not texto_input.strip():
 
     with col_der:
         st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.markdown("### Aplicaciones frecuentes")
+        st.markdown("### ¿Para qué viajeros?")
         for caso in [
-            "📰 Análisis de prensa y noticias",
-            "📋 Resultados de encuestas abiertas",
-            "💬 Reseñas y comentarios de clientes",
-            "🎓 Análisis de textos académicos",
-            "🗳️ Discursos y documentos políticos",
-            "📚 Estudios literarios y de corpus",
-            "📊 Informes de inteligencia de negocio",
+            "📓 Diarios personales de viaje",
+            "⭐ Reseñas de hoteles y tours",
+            "🗺️ Opiniones sobre destinos",
+            "📸 Pies de foto de álbumes",
+            "💌 Cartas y postales escritas",
+            "🎒 Encuestas a viajeros y mochileros",
+            "🏛️ Comentarios sobre museos y sitios turísticos",
         ]:
             st.markdown(
                 f'<span class="uso-tag">{caso}</span>',
@@ -540,8 +601,8 @@ if not generar or not texto_input.strip():
         st.markdown("### Paletas disponibles")
         for nombre in PALETAS.keys():
             st.markdown(
-                f'<div style="padding:5px 0; border-bottom:1px solid #f3f4f6;">'
-                f'<span style="color:#374151; font-size:0.88rem; font-weight:500;">{nombre}</span>'
+                f'<div style="padding:5px 0; border-bottom:1px dashed #eadfc4;">'
+                f'<span style="color:#3b4a4d; font-size:0.88rem; font-weight:500;">{nombre}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -586,7 +647,7 @@ with st.spinner("Generando nube de palabras..."):
     )
 
 st.markdown('<div class="wc-container">', unsafe_allow_html=True)
-st.markdown(f"**Nube de palabras** &nbsp;·&nbsp; Paleta: *{paleta_sel}* &nbsp;·&nbsp; Fondo: *{fondo_sel}* &nbsp;·&nbsp; {max_words} palabras máx.")
+st.markdown(f"**Tu postal** &nbsp;·&nbsp; Paleta: *{paleta_sel}* &nbsp;·&nbsp; Fondo: *{fondo_sel}* &nbsp;·&nbsp; {max_words} palabras máx.")
 st.pyplot(fig_wc, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -614,10 +675,10 @@ with col_freq:
         st.markdown(
             f'<div class="freq-row">'
             f'<span class="rank-tag">#{rank:02d}</span>'
-            f'<span style="font-weight:600; color:#111827; min-width:130px; font-size:0.93rem;">{p}</span>'
-            f'<div class="freq-bar" style="width:{barra_w}px; opacity:{0.5 + 0.5*(f/max_freq):.2f};"></div>'
+            f'<span style="font-weight:600; color:#0b3c49; min-width:130px; font-size:0.93rem;">{p}</span>'
+            f'<div class="freq-bar" style="width:{barra_w}px; opacity:{0.55 + 0.45*(f/max_freq):.2f};"></div>'
             f'<span style="font-family:\'IBM Plex Mono\',monospace; font-size:0.88rem; '
-            f'color:#374151; min-width:28px; text-align:right; font-weight:500;">{f}</span>'
+            f'color:#3b4a4d; min-width:28px; text-align:right; font-weight:500;">{f}</span>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -626,7 +687,7 @@ with col_tabla:
     st.markdown("### Tabla de frecuencias")
     st.dataframe(
         df_freq.head(30).style
-               .background_gradient(subset=["Frecuencia"], cmap="Greys")
+               .background_gradient(subset=["Frecuencia"], cmap="Oranges")
                .format({"Frecuencia": "{:,}"}),
         use_container_width=True, height=500,
     )
@@ -643,8 +704,8 @@ with st.expander("Ver texto procesado (tras eliminación de stopwords)"):
     preview = texto_limpio[:2500] + ("..." if len(texto_limpio) > 2500 else "")
     st.markdown(
         f'<p style="font-family:IBM Plex Mono,monospace; font-size:0.85rem; '
-        f'color:#374151; background:#f9fafb; padding:16px; border-radius:6px; '
-        f'border:1px solid #e5e7eb; line-height:1.8;">{preview}</p>',
+        f'color:#3b4a4d; background:#fdf6e6; padding:16px; border-radius:10px; '
+        f'border:1px dashed #d9c9a3; line-height:1.8;">{preview}</p>',
         unsafe_allow_html=True,
     )
 
