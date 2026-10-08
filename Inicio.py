@@ -1,15 +1,12 @@
 """
-🧭 Postales de Viaje — Tu viaje contado en palabras
-Aplicación Streamlit con estética de cuaderno de viaje
+📡 Radar de Reseñas — Qué dicen realmente tus clientes
+Aplicación Streamlit: convierte reseñas y comentarios en un mapa visual de palabras
 
 Instalación:
     pip install streamlit wordcloud matplotlib pandas Pillow numpy
 
 Ejecución:
     streamlit run wordcloud_app.py
-
-Imagen de portada (opcional):
-    Coloca un archivo llamado  portada.jpg  en la misma carpeta que este script.
 """
 
 import streamlit as st
@@ -18,8 +15,6 @@ import pandas as pd
 import numpy as np
 import re
 import io
-import os
-import base64
 from collections import Counter
 from wordcloud import WordCloud, STOPWORDS
 
@@ -27,38 +22,14 @@ from wordcloud import WordCloud, STOPWORDS
 # CONFIGURACIÓN
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="Postales de Viaje",
-    page_icon="🧭",
+    page_title="Radar de Reseñas",
+    page_icon="📡",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ─────────────────────────────────────────────
-# IMAGEN DE PORTADA (portada.jpg)
-# ─────────────────────────────────────────────
-RUTA_PORTADA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "portada.jpg")
-
-
-def cargar_portada_base64():
-    """Devuelve la imagen portada.jpg en base64, o None si no existe."""
-    if os.path.exists(RUTA_PORTADA):
-        with open(RUTA_PORTADA, "rb") as f:
-            return base64.b64encode(f.read()).decode("utf-8")
-    return None
-
-
-PORTADA_B64 = cargar_portada_base64()
-
-if PORTADA_B64:
-    HEADER_BG = (
-        "linear-gradient(105deg, rgba(11,60,73,0.88) 0%, rgba(11,60,73,0.55) 55%, rgba(231,111,81,0.35) 100%), "
-        f"url('data:image/jpeg;base64,{PORTADA_B64}')"
-    )
-else:
-    HEADER_BG = "linear-gradient(115deg, #0b3c49 0%, #0f766e 55%, #e76f51 130%)"
-
-# ─────────────────────────────────────────────
-# ESTILOS — cuaderno de viaje / postal vintage
+# ESTILOS — crema cálido, verde petróleo y coral
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -68,84 +39,96 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
     }
 
-    /* Fondo general: papel crema */
+    /* Fondo general crema */
     .stApp {
-        background-color: #fbf6ec;
-        background-image: radial-gradient(#efe4cc 1px, transparent 1px);
-        background-size: 22px 22px;
+        background-color: #fbf7f0;
     }
 
-    /* Sidebar: arena cálida */
+    /* Sidebar verde petróleo */
     [data-testid="stSidebar"] {
-        background-color: #f3e9d2 !important;
-        border-right: 2px dashed #d9c9a3;
+        background-color: #12343b !important;
+        border-right: 4px solid #e4572e;
     }
     [data-testid="stSidebar"] h2,
     [data-testid="stSidebar"] h3 {
-        color: #0b3c49 !important;
+        color: #f4a259 !important;
         font-weight: 700 !important;
-        font-size: 0.9rem !important;
+        font-size: 0.95rem !important;
         text-transform: uppercase !important;
         letter-spacing: 1.2px !important;
     }
-    [data-testid="stSidebar"] label {
-        color: #3d5a62 !important;
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+        color: #e8efe9 !important;
         font-size: 0.85rem !important;
         font-weight: 500 !important;
     }
     [data-testid="stSidebar"] p {
-        color: #5c6f73 !important;
+        color: #cfdcd6 !important;
         font-size: 0.88rem !important;
     }
     [data-testid="stSidebar"] hr {
-        border-color: #d9c9a3 !important;
+        border-color: rgba(255,255,255,0.14) !important;
         margin: 16px 0 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stSlider"] div {
+        color: #e8efe9 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stExpander"] {
+        background: rgba(255,255,255,0.06) !important;
+        border: 1px solid rgba(255,255,255,0.18) !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary,
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary * {
+        color: #f4a259 !important;
     }
 
     /* Inputs */
     textarea, input[type="text"] {
-        background-color: #fffdf7 !important;
-        border: 1.5px solid #d9c9a3 !important;
-        border-radius: 10px !important;
-        color: #1c2b2e !important;
+        background-color: #fffdf9 !important;
+        border: 1px solid #e3d6c0 !important;
+        border-radius: 12px !important;
+        color: #1d2b2f !important;
         font-family: 'Inter', sans-serif !important;
         font-size: 0.9rem !important;
     }
     textarea:focus, input[type="text"]:focus {
-        border-color: #0f766e !important;
-        box-shadow: 0 0 0 3px rgba(15,118,110,0.18) !important;
+        border-color: #e4572e !important;
+        box-shadow: 0 0 0 3px rgba(228,87,46,0.20) !important;
     }
 
     /* Selectbox */
     [data-baseweb="select"] > div {
-        background: #fffdf7 !important;
-        border: 1.5px solid #d9c9a3 !important;
-        border-radius: 10px !important;
-        color: #1c2b2e !important;
+        background: #fffdf9 !important;
+        border: 1px solid #e3d6c0 !important;
+        border-radius: 12px !important;
         font-size: 0.9rem !important;
+    }
+    [data-baseweb="select"] * {
+        color: #1d2b2f !important;
     }
 
     /* Títulos */
     h1 {
         font-family: 'Inter', sans-serif !important;
-        color: #0b3c49 !important;
+        color: #12343b !important;
         font-weight: 700 !important;
         letter-spacing: -0.5px !important;
     }
     h2, h3 {
         font-family: 'Inter', sans-serif !important;
-        color: #0f4c5c !important;
+        color: #12343b !important;
         font-weight: 600 !important;
     }
     p, li {
-        color: #3b4a4d !important;
+        color: #3b4a4e !important;
         font-size: 0.95rem !important;
         line-height: 1.65 !important;
     }
 
     /* Botón principal — coral */
     .stButton > button {
-        background: #e76f51 !important;
+        background: #e4572e !important;
         color: #ffffff !important;
         border: none !important;
         border-radius: 999px !important;
@@ -153,99 +136,70 @@ st.markdown("""
         font-weight: 700 !important;
         font-size: 0.9rem !important;
         letter-spacing: 0.6px !important;
-        padding: 0.65rem 1.4rem !important;
+        padding: 0.6rem 1.4rem !important;
         width: 100% !important;
-        box-shadow: 0 3px 0 #b9503a !important;
-        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease !important;
+        transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease !important;
     }
     .stButton > button:hover {
-        background: #d95f41 !important;
-        transform: translateY(1px);
-        box-shadow: 0 2px 0 #b9503a !important;
+        background: #c9441f !important;
+        box-shadow: 0 6px 18px rgba(228,87,46,0.35) !important;
+        transform: translateY(-1px);
     }
 
-    /* Botón descarga — verde azulado */
+    /* Botón descarga — verde petróleo */
     [data-testid="stDownloadButton"] button {
-        background: #0f766e !important;
+        background: #12343b !important;
         color: #ffffff !important;
         border: none !important;
         border-radius: 999px !important;
         font-weight: 600 !important;
         font-size: 0.88rem !important;
-        box-shadow: 0 3px 0 #0a524c !important;
-        transition: background 0.2s, transform 0.15s !important;
+        transition: background 0.2s !important;
     }
     [data-testid="stDownloadButton"] button:hover {
-        background: #0b5f58 !important;
-        transform: translateY(1px);
+        background: #2a9d8f !important;
     }
 
-    /* Métricas — estilo "sello" */
+    /* Métricas */
     [data-testid="metric-container"] {
-        background: #fffdf7;
-        border: 1.5px dashed #d9c9a3;
-        border-bottom: 4px solid #e76f51;
-        border-radius: 14px;
+        background: #ffffff;
+        border: 1px solid #eadfce;
+        border-bottom: 4px solid #2a9d8f;
+        border-radius: 16px;
         padding: 18px 22px;
-        box-shadow: 0 4px 10px rgba(11,60,73,0.06);
+        box-shadow: 0 4px 14px rgba(18,52,59,0.07);
     }
     [data-testid="metric-container"] label {
-        color: #7a8a8c !important;
-        font-size: 0.76rem !important;
+        color: #7a8a8d !important;
+        font-size: 0.78rem !important;
         font-weight: 600 !important;
         text-transform: uppercase !important;
-        letter-spacing: 1px !important;
+        letter-spacing: 0.8px !important;
     }
     [data-testid="metric-container"] [data-testid="stMetricValue"] {
-        color: #0b3c49 !important;
+        color: #e4572e !important;
         font-weight: 700 !important;
         font-size: 1.55rem !important;
     }
 
-    /* Header con portada */
+    /* Header */
     .header-card {
-        position: relative;
-        border-radius: 18px;
-        padding: 56px 44px;
-        margin-bottom: 26px;
-        box-shadow: 0 10px 28px rgba(11,60,73,0.22);
-        overflow: hidden;
-        background-size: cover;
-        background-position: center;
-    }
-    .header-card h1 {
-        color: #ffffff !important;
-        margin: 0;
-        font-size: 2.2rem;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.35);
-    }
-    .header-card p {
-        color: #fde9d9 !important;
-        margin: 8px 0 0 0;
-        font-size: 1.02rem !important;
-    }
-    .header-sello {
-        display: inline-block;
-        border: 2px solid #ffd9c7;
-        color: #ffd9c7;
-        border-radius: 6px;
-        padding: 2px 12px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        margin-bottom: 14px;
-        transform: rotate(-2deg);
+        background: linear-gradient(120deg, #12343b 0%, #1d5560 100%);
+        border-radius: 20px;
+        padding: 30px 38px;
+        margin-bottom: 24px;
+        box-shadow: 0 8px 24px rgba(18,52,59,0.22);
+        border-bottom: 5px solid #e4572e;
     }
 
-    /* Sección card — tarjeta postal */
+    /* Sección card */
     .section-card {
-        background: #fffdf7;
-        border: 1.5px solid #eadfc4;
+        background: #ffffff;
+        border: 1px solid #eadfce;
         border-radius: 16px;
         padding: 24px 28px;
         margin-bottom: 16px;
-        box-shadow: 0 4px 12px rgba(11,60,73,0.05);
+        box-shadow: 0 4px 14px rgba(18,52,59,0.06);
     }
 
     /* Barras de frecuencia */
@@ -255,29 +209,29 @@ st.markdown("""
         gap: 14px;
         padding: 7px 14px;
         margin: 4px 0;
-        background: #fffdf7;
-        border: 1px solid #eadfc4;
-        border-radius: 10px;
-        transition: background 0.15s, transform 0.15s;
+        background: #fffdf9;
+        border: 1px solid #f1e8d8;
+        border-radius: 12px;
+        transition: background 0.15s;
     }
-    .freq-row:hover { background: #fdf1de; transform: translateX(3px); }
+    .freq-row:hover { background: #fdf0dc; }
 
     .freq-bar {
-        height: 9px;
-        background: linear-gradient(90deg, #0f766e, #e76f51);
-        border-radius: 6px;
+        height: 10px;
+        background: linear-gradient(90deg, #e4572e, #f4a259);
+        border-radius: 999px;
         display: inline-block;
         vertical-align: middle;
     }
 
     /* Tag de ranking */
     .rank-tag {
-        background: #0b3c49;
-        border-radius: 6px;
-        padding: 1px 8px;
+        background: #12343b;
+        border-radius: 999px;
+        padding: 1px 9px;
         font-size: 0.75rem;
         font-weight: 700;
-        color: #fde9d9;
+        color: #f4a259;
         font-family: 'IBM Plex Mono', monospace;
         min-width: 36px;
         text-align: center;
@@ -289,42 +243,42 @@ st.markdown("""
         align-items: flex-start;
         gap: 12px;
         padding: 12px 16px;
-        background: #fdf6e6;
-        border: 1px solid #eadfc4;
-        border-left: 4px solid #e76f51;
-        border-radius: 10px;
+        background: #fffdf9;
+        border: 1px solid #eadfce;
+        border-left: 4px solid #2a9d8f;
+        border-radius: 12px;
         margin-bottom: 8px;
     }
 
-    /* Uso tags */
+    /* Uso cards */
     .uso-tag {
         display: inline-block;
-        background: #e3f1ef;
-        border: 1px solid #b9dcd7;
+        background: #fdf0dc;
+        border: 1px solid #f4d9b0;
         border-radius: 20px;
         padding: 5px 14px;
         font-size: 0.85rem;
         font-weight: 500;
-        color: #0b4f49;
+        color: #7a3b14;
         margin: 4px 3px;
     }
 
     /* Expander */
     div[data-testid="stExpander"] {
-        border: 1.5px solid #eadfc4 !important;
+        border: 1px solid #eadfce !important;
         border-radius: 12px !important;
-        background: #fffdf7 !important;
+        background: #ffffff !important;
     }
 
-    hr { border-color: #eadfc4 !important; }
+    hr { border-color: #eadfce !important; }
 
-    /* Nube container — marco de postal */
+    /* Nube container */
     .wc-container {
-        background: #fffdf7;
-        border: 1.5px solid #eadfc4;
+        background: #ffffff;
+        border: 1px solid #eadfce;
         border-radius: 16px;
         padding: 20px;
-        box-shadow: 0 6px 16px rgba(11,60,73,0.08);
+        box-shadow: 0 4px 14px rgba(18,52,59,0.07);
         margin-bottom: 16px;
     }
 </style>
@@ -356,14 +310,13 @@ def obtener_stopwords(idioma):
 # PALETAS
 # ─────────────────────────────────────────────
 PALETAS = {
-    "Atardecer costero":    ["#0b3c49","#0f766e","#e76f51","#f4a261","#e9c46a","#2a9d8f","#264653"],
-    "Escala de grises":     ["#111827","#1f2937","#374151","#4b5563","#6b7280","#9ca3af","#d1d5db"],
-    "Azul corporativo":     ["#1e3a5f","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#0f2942"],
-    "Verde institucional":  ["#064e3b","#065f46","#047857","#059669","#10b981","#34d399","#6ee7b7"],
-    "Gris azulado":         ["#0f172a","#1e293b","#334155","#475569","#64748b","#94a3b8","#cbd5e1"],
-    "Terracota":            ["#7c2d12","#9a3412","#c2410c","#ea580c","#f97316","#fb923c","#fdba74"],
-    "Índigo profundo":      ["#1e1b4b","#312e81","#3730a3","#4338ca","#4f46e5","#6366f1","#818cf8"],
-    "Monocromático negro":  ["#000000","#111111","#222222","#444444","#666666","#888888","#aaaaaa"],
+    "Atardecer":        ["#7f1d1d","#b91c1c","#e4572e","#f08a4b","#f5a65b","#d97706","#92400e"],
+    "Océano":           ["#0b3c49","#12606f","#1a8a96","#2a9d8f","#4fb6b0","#7fcdc7","#0f2942"],
+    "Bosque":           ["#064e3b","#065f46","#047857","#059669","#10b981","#34d399","#6ee7b7"],
+    "Uva":              ["#3b0764","#581c87","#6b21a8","#7e22ce","#9333ea","#a855f7","#c084fc"],
+    "Café de origen":   ["#3e2723","#4e342e","#5d4037","#6d4c41","#8d6e63","#a1887f","#bcaaa4"],
+    "Coral y marino":   ["#12343b","#e4572e","#2a9d8f","#f4a259","#5b8e7d","#bc4b51","#8b5e3c"],
+    "Tinta":            ["#0b132b","#1c2541","#3a506b","#5bc0be","#6fffe9","#3a506b","#1c2541"],
 }
 
 FORMAS = {
@@ -434,11 +387,11 @@ def fig_a_bytes(fig):
 # SIDEBAR
 # ─────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 🧭 Postales de Viaje")
+    st.markdown("## 📡 Radar de Reseñas")
     st.divider()
 
     # ── Fuente ──
-    st.markdown("### FUENTE DE TEXTO")
+    st.markdown("### FUENTE DE COMENTARIOS")
     fuente = st.radio("fuente", ["✍️ Escribir / Pegar", "📂 Subir archivo"],
                       label_visibility="collapsed")
     texto_input = ""
@@ -446,40 +399,33 @@ with st.sidebar:
     if fuente == "✍️ Escribir / Pegar":
         texto_input = st.text_area(
             "Texto:", height=190,
-            placeholder="Pega aquí tu diario de viaje, reseñas de hoteles, cartas o comentarios de otros viajeros...")
+            placeholder="Pega aquí reseñas de Google Maps, TripAdvisor, encuestas de satisfacción, comentarios de redes...")
 
-        with st.expander("Cargar texto de ejemplo"):
+        with st.expander("Cargar reseñas de ejemplo"):
             ejemplos = {
-                "Inteligencia Artificial": """
-                La inteligencia artificial es una disciplina de la informática orientada a desarrollar
-                sistemas capaces de ejecutar tareas que requieren capacidades cognitivas humanas.
-                El aprendizaje automático, las redes neuronales profundas y el procesamiento del
-                lenguaje natural constituyen los pilares técnicos de los sistemas modernos de
-                inteligencia artificial. Los modelos de lenguaje de gran escala, la visión
-                computacional y la robótica autónoma representan aplicaciones de vanguardia.
-                La inteligencia artificial transforma sectores como la salud, la educación,
-                la manufactura, las finanzas y el transporte, generando eficiencias significativas.
+                "Restaurante": """
+                La comida estuvo deliciosa y el servicio fue excelente. El mesero fue muy amable
+                y atento, aunque la espera por la mesa fue larga. Los platos llegaron calientes y
+                con una presentación hermosa. El ambiente es acogedor y tranquilo, ideal para
+                una cena en pareja. Los precios son justos para la calidad de la comida. La
+                carne estaba en su punto y el postre fue increíble. Volveremos pronto, recomendado
+                por el sabor y la atención. Lo único malo fue el ruido de la música.
                 """,
-                "Colombia": """
-                Colombia es una nación situada en el extremo noroccidental de América del Sur,
-                reconocida por su excepcional biodiversidad, riqueza cultural y diversidad de paisajes.
-                Bogotá es la capital y principal centro económico, seguida de Medellín, Cali y
-                Barranquilla como ciudades de relevancia nacional. El café colombiano goza de
-                reconocimiento internacional por su calidad y perfil aromático. La floricultura
-                colombiana abastece mercados globales con alta competitividad. El país alberga
-                ecosistemas del Amazonas, los Andes, el Caribe y el Pacífico, constituyéndose
-                como uno de los territorios con mayor biodiversidad del planeta.
+                "Hotel boutique": """
+                La habitación estaba limpia, cómoda y con una vista espectacular. El personal de
+                recepción fue amable y siempre dispuesto a ayudar. El desayuno es variado y
+                abundante, con frutas frescas y café delicioso. La ubicación es perfecta, cerca de
+                restaurantes y del centro histórico. El wifi es lento y el aire acondicionado hacía
+                ruido por la noche. La piscina es hermosa y tranquila. Excelente experiencia,
+                limpieza impecable y una atención muy cálida durante toda la estancia.
                 """,
-                "Tecnología 4.0": """
-                La cuarta revolución industrial redefine los modelos productivos mediante la
-                convergencia de tecnologías digitales avanzadas. El Internet de las cosas,
-                la inteligencia artificial, el análisis de grandes datos, la robótica colaborativa
-                y la automatización inteligente son pilares estratégicos de la industria moderna.
-                Las fábricas inteligentes integran sensores, conectividad y analítica para
-                optimizar procesos en tiempo real. La manufactura aditiva, los gemelos digitales
-                y la realidad aumentada transforman la ingeniería de producción. La computación
-                en la nube y la ciberseguridad son habilitadores fundamentales de la
-                transformación digital empresarial.
+                "Tienda en línea": """
+                El pedido llegó rápido y bien empacado. El producto es de buena calidad y tal como
+                se ve en las fotos. La atención al cliente respondió pronto y resolvió mi duda sin
+                problemas. El envío tardó un poco más de lo prometido pero la entrega fue segura.
+                El precio es competitivo y la talla fue la correcta. Recomiendo la tienda por la
+                confianza y la rapidez. El proceso de pago fue sencillo, aunque la página es lenta
+                y la devolución parece complicada.
                 """,
             }
             ejemplo_sel = st.selectbox("Ejemplo:", list(ejemplos.keys()),
@@ -499,23 +445,23 @@ with st.sidebar:
                 texto_input = archivo.read().decode("utf-8", errors="ignore")
             elif archivo.name.endswith(".csv"):
                 df_csv = pd.read_csv(archivo)
-                col_txt = st.selectbox("Columna de texto:", df_csv.columns.tolist())
+                col_txt = st.selectbox("Columna de reseñas:", df_csv.columns.tolist())
                 texto_input = " ".join(df_csv[col_txt].dropna().astype(str).tolist())
             st.success(f"Archivo cargado — {len(texto_input):,} caracteres")
 
     st.divider()
 
     # ── Procesamiento ──
-    st.markdown("### PROCESAMIENTO")
+    st.markdown("### FILTROS")
     idioma         = st.selectbox("Stopwords:", ["Español", "Inglés", "Ambos", "Ninguno"])
     min_longitud   = st.slider("Longitud mínima de palabra", 2, 8, 3)
     palabras_extra = st.text_input("Excluir palabras adicionales:",
-                                   placeholder="ej: también, así, aquí")
+                                   placeholder="ej: restaurante, lugar, sitio")
 
     st.divider()
 
     # ── Apariencia ──
-    st.markdown("### APARIENCIA")
+    st.markdown("### ESTILO DEL RADAR")
     paleta_sel  = st.selectbox("Paleta:", list(PALETAS.keys()))
     fondo_sel   = st.radio("Fondo:", ["Blanco", "Negro"], horizontal=True)
     fondo_color = "white" if fondo_sel == "Blanco" else "black"
@@ -523,19 +469,20 @@ with st.sidebar:
     max_words   = st.slider("Máximo de palabras:", 20, 200, 80)
 
     st.divider()
-    generar = st.button("GENERAR NUBE  ↗", use_container_width=True)
+    generar = st.button("ESCANEAR RESEÑAS  ↗", use_container_width=True)
 
 
 # ─────────────────────────────────────────────
 # CONTENIDO PRINCIPAL
 # ─────────────────────────────────────────────
 
-# Header con imagen portada.jpg
-st.markdown(f"""
-<div class="header-card" style="background-image: {HEADER_BG};">
-    <span class="header-sello">✈ Correo aéreo</span>
-    <h1>🧭 Postales de Viaje</h1>
-    <p>Tu viaje contado en palabras: descubre qué fue lo que más te marcó del camino</p>
+# Header
+st.markdown("""
+<div class="header-card">
+    <h1 style="margin:0; font-size:1.9rem; color:#ffffff !important;">📡 Radar de Reseñas</h1>
+    <p style="margin:6px 0 0 0; color:#cfe3de !important; font-size:0.97rem;">
+        Descubre qué elogian y de qué se quejan tus clientes: de cientos de comentarios a un mapa visual en segundos
+    </p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -545,35 +492,34 @@ if not generar or not texto_input.strip():
 
     with col_izq:
         st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.markdown("### Acerca de esta herramienta")
+        st.markdown("### ¿Cómo funciona el radar?")
         st.markdown("""
-        **Postales de Viaje** convierte tus diarios, reseñas y mensajes de viaje en una
-        **nube de palabras**: los términos que más repetiste (un sabor, un lugar, una emoción)
-        aparecen en mayor tamaño, revelando de un vistazo qué fue lo que realmente
-        definió tu experiencia.
+        Leer cientos de reseñas una por una es imposible. El **Radar de Reseñas** las junta todas
+        y hace crecer las palabras que más repiten tus clientes: si "lento" aparece enorme,
+        ya sabes dónde está el problema; si lo hace "delicioso", sabes qué te hace especial.
         """)
 
         for icono, titulo, desc in [
-            ("🧭", "Brújula de recuerdos", "Descubre qué palabras dominan la historia de tu viaje."),
-            ("🧳", "Equipaje liviano", "Deja fuera las palabras vacías (*stopwords*) en español e inglés y quédate con lo esencial."),
-            ("🖼️", "Postal a tu estilo", "Elige paleta, forma y cantidad de palabras para tu recuerdo visual."),
-            ("✉️", "Envía tu postal", "Descarga la imagen en alta resolución y la tabla de frecuencias en CSV."),
+            ("📊", "Termómetro de opiniones", "Identifica los temas que más mencionan tus clientes, para bien o para mal."),
+            ("🔍", "Limpieza de ruido", "Elimina palabras vacías (*stopwords*) en español e inglés para quedarte con lo importante."),
+            ("🎨", "Radar a tu estilo", "Elige paleta, forma y cantidad de palabras para tu informe o presentación."),
+            ("⬇️", "Listo para compartir", "Descarga la imagen en alta resolución y la tabla de frecuencias en CSV."),
         ]:
             st.markdown(
                 f'<div class="info-item">'
                 f'<span style="font-size:1.3rem; flex-shrink:0;">{icono}</span>'
-                f'<div><strong style="color:#0b3c49;">{titulo}</strong>'
-                f'<p style="margin:2px 0 0 0; color:#6b7a7c !important; font-size:0.88rem;">{desc}</p></div>'
+                f'<div><strong style="color:#12343b;">{titulo}</strong>'
+                f'<p style="margin:2px 0 0 0; color:#7a8a8d !important; font-size:0.88rem;">{desc}</p></div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
 
-        st.markdown("#### Cómo armar tu postal")
+        st.markdown("#### Instrucciones")
         for i, paso in enumerate([
-            "Pega o sube tu diario de viaje, reseñas o cartas en el panel lateral.",
-            "Configura el idioma de *stopwords*, la paleta y el número de palabras.",
-            "Haz clic en **GENERAR NUBE ↗**.",
-            "Descarga tu postal en PNG o la tabla de frecuencias en CSV.",
+            "Pega tus reseñas o sube un archivo con los comentarios en el panel lateral.",
+            "Ajusta los filtros: idioma de *stopwords*, palabras a excluir y estilo del radar.",
+            "Haz clic en **ESCANEAR RESEÑAS ↗**.",
+            "Descarga la imagen PNG o la tabla CSV para tu reporte.",
         ], 1):
             st.markdown(f"**{i}.** {paso}")
 
@@ -581,15 +527,15 @@ if not generar or not texto_input.strip():
 
     with col_der:
         st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.markdown("### ¿Para qué viajeros?")
+        st.markdown("### Ideal para")
         for caso in [
-            "📓 Diarios personales de viaje",
-            "⭐ Reseñas de hoteles y tours",
-            "🗺️ Opiniones sobre destinos",
-            "📸 Pies de foto de álbumes",
-            "💌 Cartas y postales escritas",
-            "🎒 Encuestas a viajeros y mochileros",
-            "🏛️ Comentarios sobre museos y sitios turísticos",
+            "🍽️ Restaurantes y cafeterías",
+            "🏨 Hoteles y alojamientos turísticos",
+            "🛍️ Tiendas físicas y en línea",
+            "📱 Comentarios en redes sociales",
+            "📋 Encuestas de satisfacción",
+            "🎟️ Eventos y experiencias turísticas",
+            "💼 Reportes de servicio al cliente",
         ]:
             st.markdown(
                 f'<span class="uso-tag">{caso}</span>',
@@ -598,18 +544,18 @@ if not generar or not texto_input.strip():
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="section-card" style="margin-top:16px;">', unsafe_allow_html=True)
-        st.markdown("### Paletas disponibles")
+        st.markdown("### Paletas del radar")
         for nombre in PALETAS.keys():
             st.markdown(
-                f'<div style="padding:5px 0; border-bottom:1px dashed #eadfc4;">'
-                f'<span style="color:#3b4a4d; font-size:0.88rem; font-weight:500;">{nombre}</span>'
+                f'<div style="padding:5px 0; border-bottom:1px solid #f1e8d8;">'
+                f'<span style="color:#12343b; font-size:0.88rem; font-weight:500;">{nombre}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
         st.markdown('</div>', unsafe_allow_html=True)
 
     if not texto_input.strip() and generar:
-        st.warning("Ingresa un texto en el panel lateral antes de generar la nube.")
+        st.warning("Pega o sube algunas reseñas en el panel lateral antes de escanear.")
     st.stop()
 
 
@@ -623,7 +569,7 @@ if palabras_extra.strip():
 texto_limpio = limpiar_texto(texto_input, stopwords_set, min_longitud)
 
 if not texto_limpio.strip():
-    st.error("El texto resultante está vacío. Reduce la longitud mínima o cambia la configuración de stopwords.")
+    st.error("No quedaron palabras tras el filtrado. Reduce la longitud mínima o cambia la configuración de stopwords.")
     st.stop()
 
 df_freq        = contar_palabras(texto_limpio)
@@ -632,22 +578,22 @@ vocabulario    = len(df_freq)
 
 # ── Métricas ──
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Palabras procesadas",     f"{total_palabras:,}")
-m2.metric("Vocabulario único",       f"{vocabulario:,}")
-m3.metric("Término más frecuente",   df_freq.iloc[0]["Palabra"] if not df_freq.empty else "—")
-m4.metric("Frecuencia máxima",       int(df_freq.iloc[0]["Frecuencia"]) if not df_freq.empty else 0)
+m1.metric("Palabras analizadas",     f"{total_palabras:,}")
+m2.metric("Términos distintos",      f"{vocabulario:,}")
+m3.metric("Tema más mencionado",     df_freq.iloc[0]["Palabra"] if not df_freq.empty else "—")
+m4.metric("Menciones máximas",       int(df_freq.iloc[0]["Frecuencia"]) if not df_freq.empty else 0)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ── Nube ──
-with st.spinner("Generando nube de palabras..."):
+with st.spinner("Escaneando reseñas..."):
     fig_wc = generar_wordcloud(
         texto_limpio, paleta_sel, max_words, fondo_color,
         FORMAS[forma_sel], ancho=1000, alto=520,
     )
 
 st.markdown('<div class="wc-container">', unsafe_allow_html=True)
-st.markdown(f"**Tu postal** &nbsp;·&nbsp; Paleta: *{paleta_sel}* &nbsp;·&nbsp; Fondo: *{fondo_sel}* &nbsp;·&nbsp; {max_words} palabras máx.")
+st.markdown(f"**Mapa de opiniones** &nbsp;·&nbsp; Paleta: *{paleta_sel}* &nbsp;·&nbsp; Fondo: *{fondo_sel}* &nbsp;·&nbsp; {max_words} palabras máx.")
 st.pyplot(fig_wc, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -664,7 +610,7 @@ st.divider()
 col_freq, col_tabla = st.columns([3, 2], gap="large")
 
 with col_freq:
-    st.markdown("### Frecuencia léxica — Top 20")
+    st.markdown("### Lo que más dicen tus clientes — Top 20")
     top20    = df_freq.head(20)
     max_freq = top20["Frecuencia"].max()
 
@@ -675,16 +621,16 @@ with col_freq:
         st.markdown(
             f'<div class="freq-row">'
             f'<span class="rank-tag">#{rank:02d}</span>'
-            f'<span style="font-weight:600; color:#0b3c49; min-width:130px; font-size:0.93rem;">{p}</span>'
-            f'<div class="freq-bar" style="width:{barra_w}px; opacity:{0.55 + 0.45*(f/max_freq):.2f};"></div>'
+            f'<span style="font-weight:600; color:#12343b; min-width:130px; font-size:0.93rem;">{p}</span>'
+            f'<div class="freq-bar" style="width:{barra_w}px; opacity:{0.5 + 0.5*(f/max_freq):.2f};"></div>'
             f'<span style="font-family:\'IBM Plex Mono\',monospace; font-size:0.88rem; '
-            f'color:#3b4a4d; min-width:28px; text-align:right; font-weight:500;">{f}</span>'
+            f'color:#3b4a4e; min-width:28px; text-align:right; font-weight:500;">{f}</span>'
             f'</div>',
             unsafe_allow_html=True,
         )
 
 with col_tabla:
-    st.markdown("### Tabla de frecuencias")
+    st.markdown("### Tabla de menciones")
     st.dataframe(
         df_freq.head(30).style
                .background_gradient(subset=["Frecuencia"], cmap="Oranges")
@@ -700,12 +646,12 @@ with col_tabla:
 
 st.divider()
 
-with st.expander("Ver texto procesado (tras eliminación de stopwords)"):
+with st.expander("Ver reseñas procesadas (tras eliminación de stopwords)"):
     preview = texto_limpio[:2500] + ("..." if len(texto_limpio) > 2500 else "")
     st.markdown(
         f'<p style="font-family:IBM Plex Mono,monospace; font-size:0.85rem; '
-        f'color:#3b4a4d; background:#fdf6e6; padding:16px; border-radius:10px; '
-        f'border:1px dashed #d9c9a3; line-height:1.8;">{preview}</p>',
+        f'color:#3b4a4e; background:#fffdf9; padding:16px; border-radius:12px; '
+        f'border:1px solid #eadfce; line-height:1.8;">{preview}</p>',
         unsafe_allow_html=True,
     )
 
